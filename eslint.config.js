@@ -7,4 +7,22 @@ module.exports = defineConfig([
   {
     ignores: ['dist/*'],
   },
+  {
+    rules: {
+      // Allow unresolved imports for peer dependencies and example app dependencies
+      'import/no-unresolved': [
+        'error',
+        {
+          ignore: [
+            '^react$',
+            '^react-native$',
+            '^@react-navigation/',
+            '^expo-',
+            '^react-native-reanimated$',
+            '^@/',
+          ],
+        },
+      ],
+    },
+  },
 ]);

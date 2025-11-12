@@ -1,49 +1,88 @@
-# XCEL PayGate SDK for React Native
+# XCEL PayGate SDK
 
-A comprehensive React Native SDK for integrating XCEL PayGate payment gateway into your mobile applications. Supports both Checkout URL and XCEL Wallet payment flows.
+Official React Native SDK for integrating XCEL PayGate payment solutions into your mobile applications.
 
 ## Features
 
-- ✅ **Checkout URL Integration** - Generate payment links and redirect customers to hosted checkout
+### Core SDK (Always Available)
+- ✅ **Payment Link Generation** - Create payment links via API
+- ✅ **Transaction Status** - Check payment status by code
 - ✅ **XCEL Wallet Payments** - Direct wallet-to-wallet transactions
-- ✅ **Merchant Products** - Fetch and manage merchant products (e.g., electricity prepaid/postpaid)
+- ✅ **Merchant Products** - Fetch and manage merchant products
 - ✅ **TypeScript Support** - Full type definitions included
 - ✅ **React Hooks** - Easy-to-use hooks for payment flows
-- ✅ **Payment Polling** - Automatic payment status checking
-- ✅ **Transaction Management** - Get merchant details, fees, and transaction status
+- ✅ **Provider Pattern** - Configure once, use everywhere
+
+### Optional Helpers (Use If Needed)
+- 🔧 **Payment Completion Hook** - Auto-handle WebView navigation
+- 🔧 **Receipt Generation** - Format transaction data as receipts
+- 🔧 **URL Parsing Utilities** - Extract payment data from redirect URLs
+- 🔧 **Payment Polling** - Automatic payment status checking
+
+> **Note:** The WebView interaction and payment completion handling are **completely optional**. Use them if they fit your use case, or build your own solution!
 
 ## Installation
 
 ```bash
-npm install
+npm install @xcelapp/paygate-sdk
 # or
-yarn install
+yarn add @xcelapp/paygate-sdk
 ```
+
+## Live Example
+
+Want to see the SDK in action? Check out the `example` branch:
+
+```bash
+git clone https://github.com/xcelapp/paygate-sdk
+cd paygate-sdk
+git checkout example
+npm install
+npm start
+```
+
+This runs a full Expo app demonstrating:
+- ✅ Payment link generation
+- ✅ WebView integration
+- ✅ Receipt display
+- ✅ Provider pattern usage
+- ✅ All SDK features
+
+See [DEVELOPMENT.md](DEVELOPMENT.md) for details.
 
 ## Quick Start
 
-### 1. Setup Configuration
+### 1. Wrap Your App with Provider (Recommended)
 
-Get your credentials from the [XCEL Business Portal](https://business.xcelapp.com/):
+Get your credentials from the [XCEL Business Portal](https://business.xcelapp.com/) and wrap your app:
 
 ```typescript
-import { XcelPayGateClient } from "./src";
+import { XcelPayGateProvider } from '@xcelapp/paygate-sdk';
 
-const config = {
-  merchantId: "YOUR_MERCHANT_ID",
-  publicKey: "YOUR_PUBLIC_KEY",
-};
+function App() {
+  return (
+    <XcelPayGateProvider
+      config={{
+        merchantId: process.env.EXPO_PUBLIC_XCEL_MERCHANT_ID,
+        publicKey: process.env.EXPO_PUBLIC_XCEL_PUBLIC_KEY,
+      }}
+    >
+      <YourApp />
+    </XcelPayGateProvider>
+  );
+}
 ```
 
-### 2. Using Checkout URL (Recommended)
+### 2. Use Hooks Anywhere in Your App
 
-The simplest integration method - generate a payment link and redirect users to XCEL's hosted checkout:
+Now you can use hooks without passing config every time:
 
 ```typescript
-import { useCheckout } from "./src";
+import { useCheckout } from '@xcelapp/paygate-sdk';
 
 function PaymentScreen() {
-  const { initiatePayment, paymentLink, paymentCode } = useCheckout(config);
+  // No need to pass config - it's provided by the Provider!
+  const { initiatePayment, paymentLink, paymentCode, loading } = useCheckout();
 
   const handlePay = async () => {
     const response = await initiatePayment({
@@ -72,9 +111,9 @@ function PaymentScreen() {
 Automatically poll for payment status updates:
 
 ```typescript
-import { usePaymentPolling } from "./src";
+import { usePaymentPolling } from '@xcelapp/paygate-sdk';
 
-const { result, isPolling } = usePaymentPolling(config, paymentCode, {
+const { result, isPolling } = usePaymentPolling(paymentCode, {
   enabled: true,
   maxAttempts: 24,
   intervalMs: 5000,
@@ -87,6 +126,378 @@ const { result, isPolling } = usePaymentPolling(config, paymentCode, {
 });
 ```
 
+## Usage Patterns
+
+The SDK supports two usage patterns:
+
+### Pattern 1: Provider Pattern (Recommended)
+
+Configure once at the app level:
+
+```typescript
+// App.tsx
+import { XcelPayGateProvider } from '@xcelapp/paygate-sdk';
+
+export default function App() {
+  return (
+    <XcelPayGateProvider config={{ merchantId: '...', publicKey: '...' }}>
+      <NavigationContainer>
+        <Stack.Navigator>
+          <Stack.Screen name="Payment" component={PaymentScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </XcelPayGateProvider>
+  );
+}
+
+// PaymentScreen.tsx
+import { useCheckout } from '@xcelapp/paygate-sdk';
+
+function PaymentScreen() {
+  const { initiatePayment, loading } = useCheckout();
+  // Use anywhere without passing config!
+}
+```
+
+### Pattern 2: Standalone (Without Provider)
+
+Pass config directly to hooks when needed:
+
+```typescript
+import { useCheckout } from '@xcelapp/paygate-sdk';
+
+function PaymentScreen() {
+  const config = {
+    merchantId: 'YOUR_MERCHANT_ID',
+    publicKey: 'YOUR_PUBLIC_KEY',
+  };
+
+  const { initiatePayment, loading } = useCheckout(config);
+  // Config passed directly
+}
+```
+
+## Payment Completion & Receipt Handling (Optional)
+
+**Note:** This section is completely **optional**. The core SDK only handles payment initiation and status checking. How you handle the WebView, completion callbacks, and receipts is entirely up to your use case.
+
+### Quick Decision Guide:
+
+| Approach | Best For | SDK Provides | You Handle |
+|----------|----------|--------------|------------|
+| **Option 1: Minimal** | Custom backend integration | Payment link generation | Everything after WebView opens |
+| **Option 2: SDK Helpers** | Quick setup, no backend | Link + completion + receipt | Just UI rendering |
+| **Option 3: Mix & Match** | Partial automation | Link + parsing utilities | Custom flow logic |
+
+Choose based on your needs:
+
+---
+
+### Option 1: Minimal Approach (No SDK Helpers)
+
+Handle everything yourself - SDK just generates the payment link:
+
+```typescript
+import { useCheckout } from '@xcelapp/paygate-sdk';
+import { WebView } from 'react-native-webview';
+
+function PaymentScreen() {
+  const { initiatePayment, paymentLink } = useCheckout();
+  const [showWebView, setShowWebView] = useState(false);
+
+  const handlePay = async () => {
+    await initiatePayment({
+      amount: '5000',
+      currency: 'XAF',
+      // ... other fields
+      redirect_url: 'myapp://payment-complete', // Your own deep link
+      webhook_url: 'https://yourapi.com/webhook', // Your backend handles this
+    });
+
+    setShowWebView(true);
+  };
+
+  if (showWebView && paymentLink) {
+    return (
+      <WebView
+        source={{ uri: paymentLink }}
+        onNavigationStateChange={(navState) => {
+          // Handle however you want
+          if (navState.url.includes('payment-complete')) {
+            // Your custom logic here
+            setShowWebView(false);
+            navigation.navigate('ThankYou');
+          }
+        }}
+      />
+    );
+  }
+
+  return <Button title="Pay Now" onPress={handlePay} />;
+}
+
+// Your backend webhook receives the actual payment status
+// You poll your own backend or use push notifications
+```
+
+**When to use:**
+- You have your own backend handling webhooks
+- You want full control over the UI/UX
+- You're using your own deep linking strategy
+- You don't need receipt generation in the app
+
+---
+
+### Option 2: Using SDK Helpers (Quick Setup)
+
+Let the SDK handle URL parsing and receipt generation:
+
+### Using the Payment Completion Hook
+
+The `usePaymentCompletion` hook automatically handles:
+- WebView navigation monitoring
+- Payment URL parsing
+- Receipt generation
+- Success/failure callbacks
+
+```typescript
+import { usePaymentCompletion } from '@xcelapp/paygate-sdk';
+import { WebView } from 'react-native-webview';
+
+function PaymentWebView({ paymentLink }: { paymentLink: string }) {
+  const {
+    handleNavigationStateChange,
+    receipt,
+    isLoading,
+    error,
+  } = usePaymentCompletion({
+    onSuccess: (receipt) => {
+      console.log('Payment successful!', receipt);
+      // Navigate to receipt screen
+      navigation.navigate('Receipt', { receipt });
+    },
+    onFailure: (error, data) => {
+      console.error('Payment failed:', error);
+      Alert.alert('Payment Failed', error.message);
+    },
+    onCancel: () => {
+      console.log('Payment cancelled');
+      navigation.goBack();
+    },
+    merchantName: 'ACME Corp',
+    autoFetchReceipt: true, // Automatically fetch full transaction details
+  });
+
+  return (
+    <View style={{ flex: 1 }}>
+      <WebView
+        source={{ uri: paymentLink }}
+        onNavigationStateChange={handleNavigationStateChange}
+      />
+      {isLoading && <ActivityIndicator />}
+    </View>
+  );
+}
+```
+
+### Displaying Payment Receipts
+
+Create a receipt screen to show payment details:
+
+```typescript
+import { PaymentReceiptData } from '@xcelapp/paygate-sdk';
+
+function ReceiptScreen({ route }: { route: { params: { receipt: PaymentReceiptData } } }) {
+  const { receipt } = route.params;
+
+  return (
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Payment Receipt</Text>
+        <Text style={styles.status}>{receipt.status}</Text>
+      </View>
+
+      <View style={styles.section}>
+        <ReceiptRow label="Merchant" value={receipt.merchantName} />
+        <ReceiptRow label="Transaction ID" value={receipt.transactionId} />
+        <ReceiptRow label="Payment Code" value={receipt.paymentCode} />
+        <ReceiptRow label="Amount" value={`${receipt.currency} ${receipt.amount}`} />
+        {receipt.fees && <ReceiptRow label="Fees" value={receipt.fees} />}
+        {receipt.totalAmount && <ReceiptRow label="Total" value={receipt.totalAmount} />}
+        <ReceiptRow label="Date" value={new Date(receipt.timestamp).toLocaleString()} />
+        {receipt.customerEmail && <ReceiptRow label="Email" value={receipt.customerEmail} />}
+        {receipt.customerPhone && <ReceiptRow label="Phone" value={receipt.customerPhone} />}
+      </View>
+
+      <Button title="Download Receipt" onPress={() => downloadReceipt(receipt)} />
+      <Button title="Share Receipt" onPress={() => shareReceipt(receipt)} />
+    </ScrollView>
+  );
+}
+
+function ReceiptRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.row}>
+      <Text style={styles.label}>{label}:</Text>
+      <Text style={styles.value}>{value}</Text>
+    </View>
+  );
+}
+```
+
+### Manual URL Parsing
+
+For custom flows or deep linking:
+
+```typescript
+import { parsePaymentCompletionUrl, isPaymentSuccessUrl } from '@xcelapp/paygate-sdk';
+
+// Handle deep link
+Linking.addEventListener('url', ({ url }) => {
+  if (url.includes('payment')) {
+    const data = parsePaymentCompletionUrl(url);
+
+    if (data && isPaymentSuccessUrl(url)) {
+      // Payment successful
+      console.log('Payment Code:', data.paymentCode);
+      console.log('Amount:', data.amount);
+      navigation.navigate('Success', { paymentCode: data.paymentCode });
+    }
+  }
+});
+```
+
+### Fetching Receipt Manually
+
+You can fetch a receipt at any time using the payment code:
+
+```typescript
+function OrderDetailsScreen({ paymentCode }: { paymentCode: string }) {
+  const { fetchReceipt, receipt, isLoading } = usePaymentCompletion({
+    merchantName: 'ACME Corp',
+  });
+
+  useEffect(() => {
+    fetchReceipt(paymentCode);
+  }, [paymentCode]);
+
+  if (isLoading) return <ActivityIndicator />;
+  if (!receipt) return <Text>No receipt found</Text>;
+
+  return <ReceiptView receipt={receipt} />;
+}
+```
+
+---
+
+### Option 3: Mix & Match (Use Utilities Only)
+
+Use SDK utilities but build your own flow:
+
+```typescript
+import { parsePaymentCompletionUrl, isPaymentSuccessUrl } from '@xcelapp/paygate-sdk';
+
+function PaymentWebView({ paymentLink }) {
+  const handleNavigation = (navState) => {
+    const data = parsePaymentCompletionUrl(navState.url);
+
+    if (data) {
+      // Use SDK utilities to parse, but handle your own way
+      if (isPaymentSuccessUrl(navState.url)) {
+        // Your custom success logic
+        console.log('Payment succeeded:', data.paymentCode);
+        yourCustomSuccessHandler(data);
+      } else if (data.status === 'FAILED') {
+        // Your custom failure logic
+        yourCustomErrorHandler(data);
+      }
+    }
+  };
+
+  return <WebView source={{ uri: paymentLink }} onNavigationStateChange={handleNavigation} />;
+}
+```
+
+**When to use:**
+- You want URL parsing help but custom UI
+- You're integrating with existing navigation flow
+- You need some automation but not full control
+
+---
+
+### Complete Payment Flow Example (Option 2)
+
+Here's a full example using SDK helpers for payment initiation, WebView, and receipt:
+
+```typescript
+// 1. Payment Initiation Screen
+function PaymentScreen() {
+  const { initiatePayment, loading, paymentLink } = useCheckout();
+  const navigation = useNavigation();
+
+  const handlePay = async () => {
+    const response = await initiatePayment({
+      amount: '5000',
+      currency: 'XAF',
+      client_transaction_id: `ORDER-${Date.now()}`,
+      customer_email: 'user@example.com',
+      customer_phone: '237233429972',
+      description: 'Product purchase',
+      channel: 'WEB',
+      redirect_url: 'myapp://payment/success',
+      webhook_url: 'https://api.myapp.com/webhook',
+    });
+
+    // Navigate to WebView with payment link
+    navigation.navigate('PaymentWebView', {
+      paymentLink: response.data.payment_link,
+      paymentCode: response.data.payment_code,
+    });
+  };
+
+  return <Button title="Pay Now" onPress={handlePay} disabled={loading} />;
+}
+
+// 2. Payment WebView Screen
+function PaymentWebViewScreen({ route }: any) {
+  const { paymentLink } = route.params;
+  const navigation = useNavigation();
+
+  const { handleNavigationStateChange, receipt } = usePaymentCompletion({
+    onSuccess: (receipt) => {
+      // Navigate to receipt screen
+      navigation.replace('Receipt', { receipt });
+    },
+    onFailure: (error) => {
+      Alert.alert('Payment Failed', error.message);
+      navigation.goBack();
+    },
+    merchantName: 'My Store',
+  });
+
+  return (
+    <WebView
+      source={{ uri: paymentLink }}
+      onNavigationStateChange={handleNavigationStateChange}
+    />
+  );
+}
+
+// 3. Receipt Screen
+function ReceiptScreen({ route }: any) {
+  const { receipt } = route.params;
+
+  return (
+    <View>
+      <Text>✓ Payment Successful!</Text>
+      <Text>Transaction: {receipt.transactionId}</Text>
+      <Text>Amount: {receipt.currency} {receipt.amount}</Text>
+      {/* Display full receipt details */}
+    </View>
+  );
+}
+```
+
 ## Advanced Usage
 
 ### XCEL Wallet Integration
@@ -94,11 +505,11 @@ const { result, isPolling } = usePaymentPolling(config, paymentCode, {
 For direct wallet-to-wallet payments:
 
 ```typescript
-import { useXcelWallet } from "./src";
+import { useXcelWallet } from '@xcelapp/paygate-sdk';
 
 function WalletPayment() {
-  const { verifyAccount, createTransaction, checkPaymentStatus } =
-    useXcelWallet(config);
+  // Works with Provider or pass config directly
+  const { verifyAccount, createTransaction, checkPaymentStatus } = useXcelWallet();
 
   // 1. Verify customer's XCEL account
   const account = await verifyAccount("GH", "233542023469");
@@ -157,14 +568,12 @@ await initiatePayment({
 Get merchant information and available products:
 
 ```typescript
-import { XcelPayGateClient } from "./src";
+import { XcelPayGateClient } from '@xcelapp/paygate-sdk';
 
-const config = {
-  merchantId: "yFhi7ApMr",
-  publicKey: "XCLPUBK_LIVE-aa88b4d983f51b0c6164d40669490b04ec8f2205",
-};
-
-const client = new XcelPayGateClient(config);
+const client = new XcelPayGateClient({
+  merchantId: "YOUR_MERCHANT_ID",
+  publicKey: "YOUR_PUBLIC_KEY",
+});
 
 // Get merchant details
 const merchantDetails = await client.getMerchantDetails();
@@ -237,23 +646,6 @@ const paymentResponse = await client.generatePaymentLink({
 // 3. Use the payment link
 console.log("Payment Link:", paymentResponse.data.payment_link);
 ```
-
-## Demo Application
-
-Run the included demo app to see the integration in action:
-
-```bash
-# Start the development server
-npm start
-
-# Run on iOS
-npm run ios
-
-# Run on Android
-npm run android
-```
-
-Navigate to the "Payment" tab to test the integration.
 
 ## Payment Flow
 

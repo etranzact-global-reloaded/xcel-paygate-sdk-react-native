@@ -1,3 +1,15 @@
+// @ts-nocheck
+/**
+ * Payment WebView - SDK Usage Example
+ *
+ * This example shows how to display a payment link in a WebView
+ * and handle payment completion.
+ *
+ * NOTE: This is a reference example file.
+ * TypeScript checking is disabled because Expo dependencies are not installed on the main branch.
+ * When you use this code in your own app, remove the @ts-nocheck comment.
+ */
+
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { StyleSheet, ActivityIndicator, View, Pressable } from 'react-native';
 import { WebView } from 'react-native-webview';

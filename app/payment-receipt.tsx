@@ -1,3 +1,15 @@
+// @ts-nocheck
+/**
+ * Payment Receipt - SDK Usage Example
+ *
+ * This example shows how to display a payment receipt
+ * with transaction details.
+ *
+ * NOTE: This is a reference example file.
+ * TypeScript checking is disabled because Expo dependencies are not installed on the main branch.
+ * When you use this code in your own app, remove the @ts-nocheck comment.
+ */
+
 import React from 'react';
 import { StyleSheet, View, Pressable, ScrollView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';

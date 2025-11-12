@@ -14,7 +14,7 @@ export interface CustomTransactionInput {
   label: string;
   placeHolder: string;
   type: 'input' | 'select';
-  options?: Array<{ k: string; v: string }>;
+  options?: { k: string; v: string }[];
   required: boolean;
 }
 
@@ -306,11 +306,11 @@ export interface CreateXcelTransactionRequest {
   reference_id: string;
   amount: string;
   fees: string;
-  products: Array<{
+  products: {
     product_id: string;
     amount: string;
     merchant_fees: string;
-  }>;
+  }[];
 }
 
 export interface XcelTransactionProduct {
@@ -386,22 +386,6 @@ export interface WebhookPayload {
   description: string;
   payment_method?: string;
   paid_at?: string;
-  metadata?: Record<string, any>;
-  products?: PaymentProduct[];
-}
-
-export interface PaymentReceiptData {
-  transaction_id: string;
-  client_transaction_id?: string;
-  payment_code: string;
-  status: PaymentStatus;
-  amount: number;
-  currency: string;
-  customer_email?: string;
-  customer_phone?: string;
-  description?: string;
-  payment_method: string;
-  payment_date: string;
   metadata?: Record<string, any>;
   products?: PaymentProduct[];
 }

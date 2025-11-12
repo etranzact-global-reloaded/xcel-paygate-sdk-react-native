@@ -1,43 +1,51 @@
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { XcelPayGateClient } from "@/src/api/client";
-import { getXcelConfig } from "@/src/config";
-import { useCheckout, usePaymentPolling } from "@/src/hooks/use-xcel-paygate";
-import type { MerchantProduct, PaymentProduct } from "@/src/types";
+// @ts-nocheck
+/**
+ * XCEL PayGate SDK - Usage Example
+ *
+ * This example demonstrates how to use the @xcelapp/paygate-sdk package
+ * in a React Native application with Expo.
+ *
+ * Features shown:
+ * - Provider pattern setup
+ * - Payment link generation
+ * - Product selection
+ * - WebView integration
+ * - Payment status monitoring
+ *
+ * NOTE: This is a reference example file.
+ * TypeScript checking is disabled because Expo dependencies are not installed on the main branch.
+ * When you use this code in your own app, remove the @ts-nocheck comment.
+ */
+
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   TextInput,
   View,
 } from "react-native";
 
+// Import SDK hooks
+// When using the published package, you would import from '@xcelapp/paygate-sdk'
+// For this example, we import from the local SDK source
+import { useCheckout, usePaymentPolling } from "../src";
+
 export default function PaymentScreen() {
   const router = useRouter();
+
+  // Form state
   const [amount, setAmount] = useState("1000");
   const [email, setEmail] = useState("customer@example.com");
-  const [phone, setPhone] = useState("237233429972"); // Cameroon format
-  const [description, setDescription] = useState(
-    "Payment for electricity bill"
-  );
+  const [phone, setPhone] = useState("237233429972");
+  const [description, setDescription] = useState("Payment for services");
 
-  // Products state
-  const [products, setProducts] = useState<MerchantProduct[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(
-    null
-  );
-  const [loadingProducts, setLoadingProducts] = useState(false);
-  const [merchantName, setMerchantName] = useState<string>("");
-  const [showProductModal, setShowProductModal] = useState(false);
-
-  // Get config from background
-  const config = getXcelConfig();
-
+  // SDK Hook - handles payment operations
+  // Config is provided by XcelPayGateProvider in _layout.tsx
   const {
     initiatePayment,
     checkStatus,
@@ -46,104 +54,57 @@ export default function PaymentScreen() {
     paymentLink,
     paymentCode,
     transaction,
-  } = useCheckout(config);
+  } = useCheckout();
 
-  // Polling is disabled - we're only monitoring the generate-payment-link response
-  const { result: pollingResult, isPolling } = usePaymentPolling(
-    config,
-    paymentCode,
-    {
-      enabled: false,
-      maxAttempts: 24,
-      intervalMs: 5000,
-    }
-  );
+  // Optional: Auto-poll payment status
+  const { result: pollingResult, isPolling } = usePaymentPolling(paymentCode, {
+    enabled: false, // Disabled - we'll check status via WebView instead
+    maxAttempts: 24,
+    intervalMs: 5000,
+  });
 
-  // Fetch merchant details and products on mount
-  useEffect(() => {
-    const fetchMerchantData = async () => {
-      setLoadingProducts(true);
-      const client = new XcelPayGateClient(config);
-
-      try {
-        console.log("=== Fetching Merchant Details ===");
-        const merchantDetails = await client.getMerchantDetails();
-        setMerchantName(merchantDetails.data.data.reg_name);
-        console.log("Merchant Name:", merchantDetails.data.data.reg_name);
-
-        console.log("\n=== Fetching Merchant Products ===");
-        const productsResponse = await client.getMerchantProducts();
-
-        if (
-          productsResponse.data?.data &&
-          productsResponse.data.data.length > 0
-        ) {
-          setProducts(productsResponse.data.data);
-          console.log(`Found ${productsResponse.data.data.length} products`);
-
-          // Auto-select first active product
-          const firstActive = productsResponse.data.data.find(
-            (p) => p.active.status && p.web
-          );
-          if (firstActive) {
-            setSelectedProductId(firstActive.product_id);
-            console.log("Auto-selected product:", firstActive.name);
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching merchant data:", err);
-        Alert.alert("Warning", "Could not load merchant products");
-      } finally {
-        setLoadingProducts(false);
-      }
-    };
-
-    fetchMerchantData();
-  }, []);
-
-  const handleInitiatePayment = async () => {
+  /**
+   * Handle payment initiation
+   * This generates a payment link that can be opened in a WebView
+   */
+  const handlePay = async () => {
     try {
-      // Build products array if a product is selected
-      const paymentProducts: PaymentProduct[] = selectedProductId
-        ? [
-            {
-              product_id: selectedProductId,
-              amount: amount,
-            },
-          ]
-        : [];
-
-      console.log("=== Initiating Payment ===");
-      console.log("Amount:", amount);
-      console.log("Products:", JSON.stringify(paymentProducts, null, 2));
-
       const response = await initiatePayment({
         amount,
-        products: paymentProducts, // Include products in payment request
-        currency: "XAF", // Cameroon uses XAF
+        currency: "XAF", // Cameroon Franc
         client_transaction_id: `TXN-${Date.now()}`,
         customer_email: email,
         customer_phone: phone,
         description,
         channel: "WEB",
+
+        // Optional: Add products
+        products: [
+          {
+            product_id: "PROD-123",
+            amount: amount,
+          },
+        ],
+
+        // Optional: Redirect and webhook URLs
+        redirect_url: "myapp://payment/success",
+        webhook_url: "https://yourapi.com/webhook",
+
+        // Optional: Custom metadata
         metadata: {
-          cart_id: `CART${Date.now()}`,
-          product_id: selectedProductId || "none",
+          order_id: `ORDER-${Date.now()}`,
+          customer_name: "John Doe",
         },
-        redirect_url: "https://business.xcelapp.com/#/auth",
-        webhook_url: "https://merchant.example.com/webhook",
       });
 
-      // Get the payment link from the response
-      const generatedLink = response.data.payment_link;
+      console.log("✓ Payment Link Generated:", response.data.payment_link);
+      console.log("✓ Payment Code:", response.data.payment_code);
 
-      console.log("✓ Payment Link Generated:", generatedLink);
-
-      // Navigate directly to payment webview with payment details
+      // Navigate to WebView with payment link
       router.push({
         pathname: "/payment-webview",
         params: {
-          paymentLink: generatedLink,
+          paymentLink: response.data.payment_link,
           paymentCode: response.data.payment_code,
           amount: amount,
           currency: "XAF",
@@ -154,11 +115,15 @@ export default function PaymentScreen() {
       console.error("Payment Error:", err);
       Alert.alert(
         "Error",
-        err instanceof Error ? err.message : "Failed to create payment link"
+        err instanceof Error ? err.message : "Failed to create payment"
       );
     }
   };
 
+  /**
+   * Manually check payment status
+   * Useful for debugging or custom flows
+   */
   const handleCheckStatus = async () => {
     if (!paymentCode) {
       Alert.alert("Error", "No payment code available");
@@ -181,226 +146,107 @@ export default function PaymentScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <ThemedView style={styles.content}>
-        <ThemedText type="title" style={styles.title}>
-          XCEL PayGate
-        </ThemedText>
+      <View style={styles.content}>
+        <Text style={styles.title}>XCEL PayGate SDK Example</Text>
+        <Text style={styles.subtitle}>Payment Integration Demo</Text>
 
-        {merchantName && (
-          <ThemedView style={styles.merchantBanner}>
-            <ThemedText style={styles.merchantText}>{merchantName}</ThemedText>
-          </ThemedView>
-        )}
+        {/* Payment Form */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Payment Details</Text>
 
-        {loadingProducts && (
-          <ThemedView style={styles.loadingSection}>
-            <ActivityIndicator size="small" color="#007AFF" />
-            <ThemedText style={styles.loadingText}>
-              Loading products...
-            </ThemedText>
-          </ThemedView>
-        )}
-
-        {products.length > 0 && (
-          <ThemedView style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Select Product Type
-            </ThemedText>
-            <ThemedText style={styles.label}>Electricity Type</ThemedText>
-
-            {/* Pressable selector that opens bottom sheet */}
-            <Pressable
-              style={styles.pickerButton}
-              onPress={() => setShowProductModal(true)}
-            >
-              <ThemedText style={styles.pickerButtonText}>
-                {selectedProductId
-                  ? products.find((p) => p.product_id === selectedProductId)
-                      ?.name || "Select Product"
-                  : "Select Product"}
-              </ThemedText>
-              <ThemedText style={styles.pickerButtonIcon}>▼</ThemedText>
-            </Pressable>
-
-            {selectedProductId && (
-              <ThemedView style={styles.selectedProductInfo}>
-                <ThemedText style={styles.infoLabel}>Payment Code:</ThemedText>
-                <ThemedText style={styles.infoValue}>
-                  {
-                    products.find((p) => p.product_id === selectedProductId)
-                      ?.payment_code
-                  }
-                </ThemedText>
-              </ThemedView>
-            )}
-          </ThemedView>
-        )}
-
-        {/* Bottom Sheet Modal for Product Selection */}
-        <Modal
-          visible={showProductModal}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowProductModal(false)}
-        >
-          <Pressable
-            style={styles.modalOverlay}
-            onPress={() => setShowProductModal(false)}
-          >
-            <View
-              style={styles.modalContent}
-              onStartShouldSetResponder={() => true}
-            >
-              <View style={styles.modalHeader}>
-                <ThemedText type="subtitle" style={styles.modalTitle}>
-                  Select Electricity Type
-                </ThemedText>
-                <Pressable onPress={() => setShowProductModal(false)}>
-                  <ThemedText style={styles.modalClose}>✕</ThemedText>
-                </Pressable>
-              </View>
-
-              <ScrollView style={styles.modalProductList}>
-                {products
-                  .filter((p) => p.active.status && p.web)
-                  .map((product) => (
-                    <Pressable
-                      key={product.product_id}
-                      style={[
-                        styles.modalProductItem,
-                        selectedProductId === product.product_id &&
-                          styles.modalProductItemSelected,
-                      ]}
-                      onPress={() => {
-                        setSelectedProductId(product.product_id);
-                        setShowProductModal(false);
-                        console.log("Selected product:", product.name);
-                      }}
-                    >
-                      <View style={styles.modalProductContent}>
-                        <ThemedText style={styles.modalProductName}>
-                          {product.name.trim()}
-                        </ThemedText>
-                        <ThemedText style={styles.modalProductCode}>
-                          {product.payment_code}
-                        </ThemedText>
-                      </View>
-                      {selectedProductId === product.product_id && (
-                        <ThemedText style={styles.modalProductCheck}>
-                          ✓
-                        </ThemedText>
-                      )}
-                    </Pressable>
-                  ))}
-              </ScrollView>
-            </View>
-          </Pressable>
-        </Modal>
-
-        <ThemedView style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Payment Details
-          </ThemedText>
-
-          <ThemedText style={styles.label}>Amount (XAF)</ThemedText>
+          <Text style={styles.label}>Amount (XAF)</Text>
           <TextInput
             style={styles.input}
             value={amount}
             onChangeText={setAmount}
-            placeholder="0.00"
-            placeholderTextColor="#999"
+            placeholder="1000"
             keyboardType="decimal-pad"
           />
 
-          <ThemedText style={styles.label}>Customer Email</ThemedText>
+          <Text style={styles.label}>Customer Email</Text>
           <TextInput
             style={styles.input}
             value={email}
             onChangeText={setEmail}
             placeholder="customer@example.com"
-            placeholderTextColor="#999"
             keyboardType="email-address"
             autoCapitalize="none"
           />
 
-          <ThemedText style={styles.label}>Customer Phone</ThemedText>
+          <Text style={styles.label}>Customer Phone</Text>
           <TextInput
             style={styles.input}
             value={phone}
             onChangeText={setPhone}
-            placeholder="233244000000"
-            placeholderTextColor="#999"
+            placeholder="237233429972"
             keyboardType="phone-pad"
           />
 
-          <ThemedText style={styles.label}>Description</ThemedText>
+          <Text style={styles.label}>Description</Text>
           <TextInput
             style={styles.input}
             value={description}
             onChangeText={setDescription}
             placeholder="Payment description"
-            placeholderTextColor="#999"
           />
-        </ThemedView>
+        </View>
 
+        {/* Generate Payment Button */}
         <Pressable
           style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleInitiatePayment}
+          onPress={handlePay}
           disabled={loading}
         >
-          <ThemedText style={styles.buttonText}>
-            {loading ? "Processing..." : "Generate Payment Link"}
-          </ThemedText>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Generate Payment Link</Text>
+          )}
         </Pressable>
 
+        {/* Payment Result Section */}
         {paymentCode && (
-          <ThemedView style={styles.resultSection}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Payment Created
-            </ThemedText>
+          <View style={styles.resultSection}>
+            <Text style={styles.resultTitle}>✓ Payment Created</Text>
 
-            <ThemedText style={styles.resultLabel}>Payment Code:</ThemedText>
-            <ThemedText style={styles.resultValue}>{paymentCode}</ThemedText>
-
-            {isPolling && (
-              <ThemedText style={styles.pollingText}>
-                Checking payment status...
-              </ThemedText>
-            )}
+            <View style={styles.resultRow}>
+              <Text style={styles.resultLabel}>Payment Code:</Text>
+              <Text style={styles.resultValue}>{paymentCode}</Text>
+            </View>
 
             {transaction && (
               <>
-                <ThemedText style={styles.resultLabel}>Status:</ThemedText>
-                <ThemedText style={[styles.resultValue, styles.statusText]}>
-                  {transaction.status}
-                </ThemedText>
+                <View style={styles.resultRow}>
+                  <Text style={styles.resultLabel}>Status:</Text>
+                  <Text style={[styles.resultValue, styles.statusText]}>
+                    {transaction.status}
+                  </Text>
+                </View>
 
-                <ThemedText style={styles.resultLabel}>
-                  Transaction ID:
-                </ThemedText>
-                <ThemedText style={styles.resultValue}>
-                  {transaction.transaction_id}
-                </ThemedText>
+                <View style={styles.resultRow}>
+                  <Text style={styles.resultLabel}>Transaction ID:</Text>
+                  <Text style={styles.resultValue}>
+                    {transaction.transaction_id}
+                  </Text>
+                </View>
               </>
             )}
 
-            {pollingResult && pollingResult.status === "SUCCESS" && (
-              <ThemedView style={styles.successBanner}>
-                <ThemedText style={styles.successText}>
-                  ✓ Payment Successful
-                </ThemedText>
-              </ThemedView>
+            {isPolling && (
+              <Text style={styles.pollingText}>Checking payment status...</Text>
             )}
 
+            {/* Manual Status Check */}
             <Pressable
               style={styles.secondaryButton}
               onPress={handleCheckStatus}
             >
-              <ThemedText style={styles.secondaryButtonText}>
+              <Text style={styles.secondaryButtonText}>
                 Check Status Manually
-              </ThemedText>
+              </Text>
             </Pressable>
 
+            {/* Open Payment Page */}
             {paymentLink && (
               <Pressable
                 style={styles.secondaryButton}
@@ -409,37 +255,45 @@ export default function PaymentScreen() {
                     pathname: "/payment-webview",
                     params: {
                       paymentLink,
-                      paymentCode: paymentCode || "",
-                      amount: amount,
+                      paymentCode,
+                      amount,
                       currency: "XAF",
-                      description: description,
+                      description,
                     },
                   })
                 }
               >
-                <ThemedText style={styles.secondaryButtonText}>
+                <Text style={styles.secondaryButtonText}>
                   Open Payment Page
-                </ThemedText>
+                </Text>
               </Pressable>
             )}
-          </ThemedView>
+          </View>
         )}
 
+        {/* Error Display */}
         {error && (
-          <ThemedView style={styles.errorBox}>
-            <ThemedText style={styles.errorText}>{error.message}</ThemedText>
-          </ThemedView>
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>⚠️ {error.message}</Text>
+          </View>
         )}
 
-        <ThemedView style={styles.infoSection}>
-          <ThemedText style={styles.infoText}>
-            Merchant ID: {config.merchantId}
-          </ThemedText>
-          <ThemedText style={styles.infoText}>
-            Configure credentials in src/config/index.ts
-          </ThemedText>
-        </ThemedView>
-      </ThemedView>
+        {/* SDK Info */}
+        <View style={styles.infoSection}>
+          <Text style={styles.infoTitle}>How This Works:</Text>
+          <Text style={styles.infoText}>1. Fill in payment details above</Text>
+          <Text style={styles.infoText}>
+            2. Click &quot;Generate Payment Link&quot;
+          </Text>
+          <Text style={styles.infoText}>
+            3. SDK creates a secure payment link
+          </Text>
+          <Text style={styles.infoText}>
+            4. Open link in WebView for customer to pay
+          </Text>
+          <Text style={styles.infoText}>5. Monitor status or use webhooks</Text>
+        </View>
+      </View>
     </ScrollView>
   );
 }
@@ -447,38 +301,23 @@ export default function PaymentScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#fff",
   },
   content: {
     padding: 20,
     paddingTop: 60,
   },
   title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 8,
+    textAlign: "center",
+    color: "#000",
+  },
+  subtitle: {
+    fontSize: 16,
     marginBottom: 24,
     textAlign: "center",
-  },
-  merchantBanner: {
-    backgroundColor: "#007AFF",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    alignItems: "center",
-  },
-  merchantText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  loadingSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-    marginBottom: 16,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
-  },
-  loadingText: {
-    marginLeft: 12,
     color: "#666",
   },
   section: {
@@ -488,114 +327,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
   },
   sectionTitle: {
-    marginBottom: 16,
-  },
-  pickerButton: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    marginBottom: 16,
-    padding: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  pickerButtonText: {
-    fontSize: 16,
-    color: "#000",
-    flex: 1,
-  },
-  pickerButtonIcon: {
-    fontSize: 12,
-    color: "#666",
-    marginLeft: 8,
-  },
-  selectedProductInfo: {
-    backgroundColor: "#e3f2fd",
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: 40,
-    maxHeight: "70%",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  modalTitle: {
     fontSize: 18,
     fontWeight: "600",
-  },
-  modalClose: {
-    fontSize: 24,
-    color: "#666",
-    padding: 4,
-  },
-  modalProductList: {
-    paddingHorizontal: 20,
-  },
-  modalProductItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-    backgroundColor: "#fff",
-  },
-  modalProductItemSelected: {
-    backgroundColor: "#e3f2fd",
-  },
-  modalProductContent: {
-    flex: 1,
-  },
-  modalProductName: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
+    marginBottom: 16,
     color: "#000",
-  },
-  modalProductCode: {
-    fontSize: 12,
-    color: "#666",
-  },
-  modalProductCheck: {
-    fontSize: 20,
-    color: "#007AFF",
-    fontWeight: "bold",
-    marginLeft: 12,
-  },
-  infoLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#555",
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  infoValue: {
-    fontSize: 14,
-    color: "#000",
-    marginBottom: 4,
   },
   label: {
     marginBottom: 8,
     fontWeight: "600",
+    color: "#333",
   },
   input: {
     backgroundColor: "#fff",
@@ -639,13 +379,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#e8f5e9",
     marginBottom: 16,
   },
+  resultTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 16,
+    color: "#2e7d32",
+  },
+  resultRow: {
+    marginBottom: 12,
+  },
   resultLabel: {
     fontWeight: "600",
-    marginTop: 12,
     marginBottom: 4,
+    color: "#333",
   },
   resultValue: {
     fontSize: 14,
+    color: "#000",
   },
   statusText: {
     fontWeight: "bold",
@@ -656,36 +406,32 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     color: "#666",
   },
-  successBanner: {
-    backgroundColor: "#4caf50",
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 16,
-    alignItems: "center",
-  },
-  successText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
   errorBox: {
     backgroundColor: "#ffebee",
     padding: 16,
     borderRadius: 8,
-    marginTop: 16,
+    marginBottom: 16,
   },
   errorText: {
     color: "#c62828",
+    fontWeight: "500",
   },
   infoSection: {
     marginTop: 24,
-    padding: 12,
+    padding: 16,
     borderRadius: 8,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#e3f2fd",
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 12,
+    color: "#1565c0",
   },
   infoText: {
-    fontSize: 12,
-    color: "#666",
-    marginBottom: 4,
+    fontSize: 14,
+    color: "#555",
+    marginBottom: 6,
+    paddingLeft: 8,
   },
 });
