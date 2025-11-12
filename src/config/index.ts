@@ -1,17 +1,22 @@
 import type { XcelPayGateConfig } from "../types";
 
-// Configure your merchant credentials here
+// Configure your merchant credentials using environment variables
 // Get these from: https://business.xcelapp.com/
+// Copy .env.example to .env and fill in your credentials
 export const XCEL_CONFIG: XcelPayGateConfig = {
-  merchantId: "yFhi7ApMr", // ENEO Cameroon merchant
-  publicKey: "XCLPUBK_LIVE-aa88b4d983f51b0c6164d40669490b04ec8f2205",
+  merchantId: process.env.EXPO_PUBLIC_XCEL_MERCHANT_ID || "",
+  publicKey: process.env.EXPO_PUBLIC_XCEL_PUBLIC_KEY || "",
   // Optional: Override base URL for testing
-  // baseUrl: 'https://api.xcelapp.com',
+  baseUrl: process.env.EXPO_PUBLIC_XCEL_BASE_URL,
 };
 
 // Export a function to get config (useful for dynamic configuration)
 export const getXcelConfig = (): XcelPayGateConfig => {
-  // You can add logic here to fetch from env variables or secure storage
-  // Example: return { merchantId: process.env.MERCHANT_ID, ... }
+  if (!XCEL_CONFIG.merchantId || !XCEL_CONFIG.publicKey) {
+    throw new Error(
+      "XCEL PayGate: Missing required environment variables. " +
+      "Please set EXPO_PUBLIC_XCEL_MERCHANT_ID and EXPO_PUBLIC_XCEL_PUBLIC_KEY in your .env file."
+    );
+  }
   return XCEL_CONFIG;
 };
