@@ -41,9 +41,9 @@ export interface XcelPayGateProviderProps {
  */
 export function XcelPayGateProvider({ config, children }: XcelPayGateProviderProps) {
   // Use refs to ensure services are only created once
-  const clientRef = useRef<XcelPayGateClient>();
-  const checkoutRef = useRef<CheckoutService>();
-  const walletRef = useRef<XcelWalletService>();
+  const clientRef = useRef<XcelPayGateClient | null>(null);
+  const checkoutRef = useRef<CheckoutService | null>(null);
+  const walletRef = useRef<XcelWalletService | null>(null);
 
   if (!clientRef.current) {
     clientRef.current = new XcelPayGateClient(config);

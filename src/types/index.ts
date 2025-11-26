@@ -36,16 +36,19 @@ export interface GeneratePaymentLinkRequest {
   amount: string;
   currency: string;
   client_transaction_id: string;
-  customer_email: string;
-  customer_phone: string;
-  description: string;
-  channel: 'WEB' | 'MOBILE';
+  customer_email?: string;
+  customer_phone?: string;
+  description?: string;
+  channel: 'WEB' | 'MOBILE' | 'USSD';
   metadata?: Record<string, any>;
   redirect_url: string;
   webhook_url?: string;
   products?: PaymentProduct[];
   customTxn?: CustomTransaction;
 }
+
+// Alias for backward compatibility
+export type PaymentRequest = GeneratePaymentLinkRequest;
 
 export interface GeneratePaymentLinkResponse {
   status: string;
@@ -399,3 +402,6 @@ export interface WebViewMessageData {
   hasSuccessIndicator?: boolean;
   hasFailureIndicator?: boolean;
 }
+
+// Re-export PaymentReceiptData from payment-completion
+export type { PaymentReceiptData } from '../utils/payment-completion';

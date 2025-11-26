@@ -49,3 +49,22 @@ export type {
   PaymentCompletionData,
   PaymentReceiptData,
 } from './utils/payment-completion';
+
+// ============================================================================
+// UI COMPONENTS - Drop-in Payment UI
+// These are optional pre-built components for quick integration.
+// Requires: react-native-webview (install separately)
+// ============================================================================
+
+// Payment UI Components
+export {
+  XcelPaymentScreen,
+  XcelPaymentWebView,
+  XcelPaymentFlow,
+} from './components';
+export type {
+  XcelPaymentScreenProps,
+  XcelPaymentWebViewProps,
+  XcelPaymentFlowProps,
+  PaymentResult,
+} from './components';

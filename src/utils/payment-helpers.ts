@@ -137,20 +137,23 @@ export function getStatusMessage(status: PaymentStatus, amount: number, currency
  * Convert TransactionData to PaymentReceiptData
  */
 export function transactionToReceipt(transaction: TransactionData): PaymentReceiptData {
+  const status = transaction.status === 'SUCCESS' || transaction.status === 'FAILED' || transaction.status === 'PENDING'
+    ? transaction.status
+    : 'PENDING';
+
   return {
-    transaction_id: transaction.transaction_id,
-    client_transaction_id: transaction.client_transaction_id,
-    payment_code: transaction.payment_code,
-    status: transaction.status,
-    amount: transaction.amount,
+    receiptId: transaction._id,
+    merchantName: transaction.merchant_id,
+    transactionId: transaction.transaction_id,
+    paymentCode: transaction.payment_code,
+    status,
+    amount: transaction.amount.toString(),
     currency: transaction.currency,
-    customer_email: transaction.customer_email,
-    customer_phone: transaction.customer_phone,
+    customerEmail: transaction.customer_email,
+    customerPhone: transaction.customer_phone,
     description: transaction.description,
-    payment_method: 'XcelPOS', // Default payment method
-    payment_date: formatPaymentDate(transaction.updatedAt || transaction.createdAt),
-    metadata: {},
-    products: transaction.products,
+    paymentMethod: 'XcelPOS',
+    timestamp: formatPaymentDate(transaction.updatedAt || transaction.createdAt),
   };
 }
 
@@ -158,20 +161,23 @@ export function transactionToReceipt(transaction: TransactionData): PaymentRecei
  * Convert WebhookPayload to PaymentReceiptData
  */
 export function webhookToReceipt(webhook: WebhookPayload): PaymentReceiptData {
+  const status = webhook.status === 'SUCCESS' || webhook.status === 'FAILED' || webhook.status === 'PENDING'
+    ? webhook.status
+    : 'PENDING';
+
   return {
-    transaction_id: webhook.transaction_id,
-    client_transaction_id: webhook.client_transaction_id,
-    payment_code: webhook.payment_code,
-    status: webhook.status,
-    amount: webhook.amount,
+    receiptId: webhook.transaction_id,
+    merchantName: '',
+    transactionId: webhook.transaction_id,
+    paymentCode: webhook.payment_code,
+    status,
+    amount: webhook.amount.toString(),
     currency: webhook.currency,
-    customer_email: webhook.customer_email,
-    customer_phone: webhook.customer_phone,
+    customerEmail: webhook.customer_email,
+    customerPhone: webhook.customer_phone,
     description: webhook.description,
-    payment_method: webhook.payment_method || 'XcelPOS',
-    payment_date: formatPaymentDate(webhook.paid_at || new Date()),
-    metadata: webhook.metadata,
-    products: webhook.products,
+    paymentMethod: webhook.payment_method || 'XcelPOS',
+    timestamp: formatPaymentDate(webhook.paid_at || new Date()),
   };
 }
 
@@ -191,10 +197,20 @@ export function parsePaymentUrlParams(url: string): Partial<PaymentReceiptData> 
       return null;
     }
 
+    const paymentStatus = status?.toUpperCase();
+    const normalizedStatus = (paymentStatus === 'SUCCESS' || paymentStatus === 'FAILED' || paymentStatus === 'PENDING')
+      ? paymentStatus
+      : 'PENDING';
+
     return {
-      transaction_id: transaction_id || '',
-      payment_code: payment_code || '',
-      status: (status?.toUpperCase() as PaymentStatus) || 'PENDING',
+      receiptId: transaction_id || payment_code || '',
+      merchantName: '',
+      transactionId: transaction_id || '',
+      paymentCode: payment_code || '',
+      status: normalizedStatus,
+      amount: params.get('amount') || '0',
+      currency: params.get('currency') || 'XAF',
+      timestamp: new Date().toISOString(),
     };
   } catch (error) {
     return null;

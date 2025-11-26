@@ -21,9 +21,9 @@ export function useXcelPayGate(config?: XcelPayGateConfig) {
   // Always call the hook unconditionally, then decide whether to use it
   const context = useXcelPayGateContext();
 
-  const clientRef = useRef<XcelPayGateClient>();
-  const checkoutServiceRef = useRef<CheckoutService>();
-  const walletServiceRef = useRef<XcelWalletService>();
+  const clientRef = useRef<XcelPayGateClient | null>(null);
+  const checkoutServiceRef = useRef<CheckoutService | null>(null);
+  const walletServiceRef = useRef<XcelWalletService | null>(null);
 
   // If using context (no config provided), return context services
   if (!config && context) {
