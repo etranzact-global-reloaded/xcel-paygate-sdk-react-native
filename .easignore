@@ -1,0 +1,47 @@
+# EAS Build Ignore
+# Files to exclude from EAS builds
+
+# Documentation - exclude all .md except README.md
+*.md
+!README.md
+
+# Development files
+node_modules/
+.git/
+.gitignore
+
+# Environment files
+.env
+.env*.local
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+
+# Expo
+.expo/
+.expo-shared/
+
+# Test files
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Security documentation
+SECURITY_*.md
+PUBLISH_GUIDE.md
+READY_TO_PUBLISH.md

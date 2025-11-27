@@ -31,7 +31,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/xcelapp/paygate-sdk"
+    "url": "https://github.com/etranzact-global-reloaded/xcel-paygate-sdk-react-native"
+  },
+  "homepage": "https://github.com/etranzact-global-reloaded/xcel-paygate-sdk-react-native#readme",
+  "bugs": {
+    "url": "https://github.com/etranzact-global-reloaded/xcel-paygate-sdk-react-native/issues"
   },
   "peerDependencies": {
     "react": ">=16.8.0",

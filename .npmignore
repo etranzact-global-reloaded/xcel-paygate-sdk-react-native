@@ -1,0 +1,51 @@
+# Source files (we include dist instead)
+src/
+
+# Example app
+app/
+components/
+constants/
+scripts/
+assets/
+hooks/
+
+# Config files
+.expo/
+.vscode/
+.idea/
+*.log
+*.env
+.env
+.env.local
+
+# Development files
+tsconfig.json
+eslint.config.js
+babel.config.js
+metro.config.js
+app.json
+expo-env.d.ts
+
+# Documentation (keep only essential ones)
+SETUP_COMPLETE.md
+EXPO_MODULE_MIGRATION.md
+
+# Test files
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Build artifacts
+node_modules/
+*.tgz
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
