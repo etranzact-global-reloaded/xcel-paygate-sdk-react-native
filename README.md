@@ -160,8 +160,8 @@ Get merchant information and available products:
 import { XcelPayGateClient } from "./src";
 
 const config = {
-  merchantId: "yFhi7ApMr",
-  publicKey: "XCLPUBK_LIVE-aa88b4d983f51b0c6164d40669490b04ec8f2205",
+  merchantId: "YOUR_MERCHANT_ID",
+  publicKey: "YOUR_PUBLIC_KEY",
 };
 
 const client = new XcelPayGateClient(config);
@@ -277,8 +277,8 @@ Navigate to the "Payment" tab to test the integration.
 
 Test the integration using the provided test credentials:
 
-- **Test Merchant ID:** `0pf9ztq7q`
-- **Test Paygate URL:** `https://paygate.xcelapp.com/pay/0pf9ztq7q`
+- **Test Merchant ID:** `YOUR_TEST_MERCHANT_ID`
+- **Test Paygate URL:** `https://paygate.xcelapp.com/pay/YOUR_TEST_MERCHANT_ID`
 
 ## Best Practices
 

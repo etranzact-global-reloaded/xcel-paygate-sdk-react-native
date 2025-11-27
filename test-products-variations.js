@@ -2,8 +2,8 @@
  * Test different variations to fetch products
  */
 
-const MERCHANT_ID = 'yFhi7ApMr';
-const PUBLIC_KEY = 'XCLPUBK_LIVE-9d3fc6d0c281d646b4f4d3d70acf260216da47fe';
+const MERCHANT_ID = 'YOUR_MERCHANT_ID';
+const PUBLIC_KEY = 'YOUR_PUBLIC_KEY';
 const BASE_URL = 'https://api.xcelapp.com';
 
 async function testVariation1() {

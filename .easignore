@@ -1,0 +1,30 @@
+# EAS Build Ignore
+# Exclude development and documentation files from EAS builds
+
+# Development files
+app-example/
+node_modules/
+.git/
+.expo/
+
+# Documentation - exclude all .md except README.md
+*.md
+!README.md
+
+# Test files
+test-*.js
+example-*.ts
+inspect-*.js
+
+# Development configs
+.vscode/
+.idea/
+*.log
+
+# Environment files (use EAS Secrets instead)
+.env
+.env.*
+
+# Generated files
+dist/
+web-build/
