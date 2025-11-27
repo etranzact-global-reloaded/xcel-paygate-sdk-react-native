@@ -3,8 +3,8 @@
  * This will log the actual structure from the API
  */
 
-const MERCHANT_ID = "yFhi7ApMr";
-const PUBLIC_KEY = "XCLPUBK_LIVE-aa88b4d983f51b0c6164d40669490b04ec8f2205";
+const MERCHANT_ID = "YOUR_MERCHANT_ID";
+const PUBLIC_KEY = "YOUR_PUBLIC_KEY";
 const BASE_URL = "https://api.xcelapp.com";
 
 async function fetchMerchantProducts() {
