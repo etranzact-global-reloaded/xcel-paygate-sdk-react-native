@@ -11,7 +11,7 @@ import { XcelPayGateClient } from "./src/api/client";
 import type { PaymentProduct } from "./src/types";
 
 const config = {
-  merchantId: "YOUR_MERCHANT_ID", // ENEO Cameroon merchant
+  merchantId: "YOUR_MERCHANT_ID",
   publicKey: "YOUR_PUBLIC_KEY",
 };
 
