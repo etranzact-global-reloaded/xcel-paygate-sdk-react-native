@@ -1,6 +1,6 @@
 {
   "name": "xcel-paygate-sdk",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Official React Native SDK for XCEL PayGate payment integration",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
