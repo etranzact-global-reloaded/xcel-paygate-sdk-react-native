@@ -484,4 +484,4 @@ MIT © XCEL
 
 ---
 
-**Made with ❤️ in Africa**
+**Made with ❤️ @ eTranzact Global**
