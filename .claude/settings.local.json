@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git -C /Users/kayzmann/Documents/react-native-projects/xcel-paygate-sdk show archive:src/index.ts)",
+      "Bash(git -C /Users/kayzmann/Documents/react-native-projects/xcel-paygate-sdk ls-tree:*)",
+      "Bash(wc:*)"
+    ]
+  }
+}
